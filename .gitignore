@@ -1,0 +1,13 @@
+# Nunca publicar limites, pontos de verificação nem produtos das áreas estudadas
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qmd
+*.fix
+*.kml
+*.kmz
+*.tif
+*.csv
+*.xlsx
