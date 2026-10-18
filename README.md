@@ -8,9 +8,16 @@ Engenharia (IME), por Pedro Silva de Medeiros e Pablo dos Santos Gomes Artte.
 
 ## Arquivos
 
-- `app_degradacao.js`: o aplicativo (versão 2.7).
+- `app_degradacao.js`: o aplicativo (versão 2.8).
 - `extrair_endmembers.js`: script auxiliar que calcula os endmembers a partir de pixels puros
   da própria imagem.
+
+## App publicado
+
+https://ee-arttepablo.projects.earthengine.app/view/deteco-de-mudanas
+
+Abre no navegador, sem conta. Dá para desenhar a área, processar e ver os mapas; as exportações
+e o carregamento por asset só funcionam rodando o código no Code Editor (passos abaixo).
 
 ## Como usar
 
@@ -19,7 +26,8 @@ Engenharia (IME), por Pedro Silva de Medeiros e Pablo dos Santos Gomes Artte.
 2. Crie um script novo, cole o conteúdo de `app_degradacao.js` e clique em **Run**.
 3. Desenhe o polígono da área no mapa da esquerda ou informe o id de um asset seu e clique
    em **Usar asset**.
-4. Clique em **Verificar bioma** e depois em **Processar**.
+4. Clique em **Verificar bioma**, confira os limiares da classificação (passo 3 do painel; padrão
+   f_solo ≥ 0,30 e NDVI ≤ 0,45) e clique em **Processar**.
 5. Use os botões de **Saídas** para exportar os produtos para o Google Drive (aba Tasks).
 
 ## O que o app faz
@@ -27,9 +35,11 @@ Engenharia (IME), por Pedro Silva de Medeiros e Pablo dos Santos Gomes Artte.
 - Composição mediana de cada ano com imagens de junho a setembro (Sentinel-2 SR Harmonized,
   máscara de nuvem Cloud Score+).
 - Modelo linear de mistura espectral (vegetação, solo e sombra) e NDVI.
-- Classificação anual: fração de solo ≥ 0,30 e NDVI ≤ 0,45.
+- Classificação anual: fração de solo ≥ 0,30 e NDVI ≤ 0,45 (valores padrão, exibidos no painel e
+  ajustáveis pelo operador; o arquivo de parâmetros registra os valores usados).
 - Persistência (número de anos classificado) e redução contínua do NDVI entre 2019 e 2025.
 - Amostra aleatória estratificada para verificação da acurácia, exportada em SHP.
+- Exportação das frações do modelo de mistura e do NDVI de cada ano, para testar outros limiares.
 
 ## Limitações
 
@@ -41,5 +51,5 @@ diagnóstico de campo.
 ## Como citar
 
 MEDEIROS, P. S. de; ARTTE, P. dos S. G. **Detecção de mudança de cobertura em propriedades
-militares da Mata Atlântica**: aplicativo para o Google Earth Engine. Versão 2.7. 2026.
-Disponível em: <ENDEREÇO DO REPOSITÓRIO>.
+militares da Mata Atlântica**: aplicativo para o Google Earth Engine. Versão 2.8. 2026.
+Disponível em: https://github.com/silvamed/deteccao-mudanca-gee.

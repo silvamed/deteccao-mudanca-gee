@@ -1,14 +1,16 @@
 // Deteccao de mudanca de cobertura em propriedades militares (Mata Atlantica)
-// App para o Code Editor do Google Earth Engine - versao 2.7
+// App para o Code Editor do Google Earth Engine - versao 2.8
 // PFC de Engenharia Cartografica, IME - Pedro Medeiros e Pablo Artte
 //
 // Como usar:
 //   1. Desenhe o poligono da area no mapa da esquerda ou cole o id de um asset
 //      e clique em "Usar asset".
 //   2. Clique em "Verificar bioma".
-//   3. Clique em "Processar". A amostra de validacao (SHP de pontos e CSV com a
+//   3. Confira os limiares da classificacao (padrao: f_solo >= 0.30 e
+//      NDVI <= 0.45, os usados no trabalho).
+//   4. Clique em "Processar". A amostra de validacao (SHP de pontos e CSV com a
 //      area dos estratos) vai direto para a aba Tasks.
-//   4. Use os botoes de "Saidas" para exportar os produtos para o Drive.
+//   5. Use os botoes de "Saidas" para exportar os produtos para o Drive.
 //
 // Os parametros so foram testados na Mata Atlantica. Fora dela o app pede
 // confirmacao antes de processar.
@@ -29,7 +31,7 @@ var ESCALA    = 10;      // m, exportacoes e tabelas
 var ESCALA_UI = 30;      // m, numeros do painel (so para leitura rapida)
 var MARGEM    = 2000;    // m em volta da area, para as composicoes exportadas
 var PASTA_EXPORT = 'PFC_degradacao';
-var VERSAO = '2.7';
+var VERSAO = '2.8';
 var SEM_DADO = 255;      // valor dos rasters de classe fora da area ou sem dado
 
 var N_VALIDACAO_POR_ESTRATO = 100;
@@ -288,7 +290,7 @@ function chuvaNaJanela(P, ano, geom) {
 // ---------------------------------------------------------------------------
 var estado = {aoi: null, produtos: null, origemAoi: null, epsg: null,
               biomaVerificado: false, naMataAtlantica: null, ecorregiao: null,
-              idExecucao: null};
+              idExecucao: null, P: null};
 
 var CINZA = '#5f6b63', VERDE = '#1b3a2b', VERMELHO = '#b3261e';
 
@@ -349,8 +351,42 @@ painel.add(lblEco);
 painel.add(chkFora);
 painel.add(nota('Os parametros foram testados apenas na Mata Atlantica.'));
 
-// Passo 3: processar
-painel.add(titulo('3. Processar'));
+// Passo 3: limiares. Ficam a mostra para o operador saber o que entra na
+// classe; o padrao e o usado no trabalho (CIG e AMAN).
+painel.add(titulo('3. Limiares da classificacao'));
+painel.add(nota('Um pixel e classificado quando a fracao de solo e maior ou igual ao ' +
+                'limiar de solo E o NDVI e menor ou igual ao limiar de NDVI, ou seja, ' +
+                'baixa cobertura vegetal com solo aparente. Padrao: f_solo >= ' +
+                PARAM.lim_solo.toFixed(2) + ' e NDVI <= ' + PARAM.lim_ndvi.toFixed(2) + '.'));
+var sldSolo = ui.Slider({min: 0.10, max: 0.60, value: PARAM.lim_solo, step: 0.01,
+                         style: {stretch: 'horizontal'}});
+var sldNdvi = ui.Slider({min: 0.20, max: 0.70, value: PARAM.lim_ndvi, step: 0.01,
+                         style: {stretch: 'horizontal'}});
+painel.add(ui.Panel([ui.Label('f_solo >=', {fontSize: '12px', width: '70px'}), sldSolo],
+                    ui.Panel.Layout.flow('horizontal'), {stretch: 'horizontal'}));
+painel.add(ui.Panel([ui.Label('NDVI <=', {fontSize: '12px', width: '70px'}), sldNdvi],
+                    ui.Panel.Layout.flow('horizontal'), {stretch: 'horizontal'}));
+var btnPadrao = ui.Button({label: 'Voltar ao padrao', style: {stretch: 'horizontal'}});
+btnPadrao.onClick(function() {
+  sldSolo.setValue(PARAM.lim_solo);
+  sldNdvi.setValue(PARAM.lim_ndvi);
+});
+painel.add(btnPadrao);
+painel.add(nota('Mudar os limiares muda o mapa e a amostra de validacao. Para comparar ' +
+                'anos ou areas, use os mesmos valores.'));
+
+// Copia do padrao com os limiares escolhidos no passo 3.
+function parametrosDaTela() {
+  var P = {};
+  for (var k in PARAM) { P[k] = PARAM[k]; }
+  P.lim_solo = Math.round(sldSolo.getValue() * 100) / 100;
+  P.lim_ndvi = Math.round(sldNdvi.getValue() * 100) / 100;
+  P.limiares_padrao = (P.lim_solo === PARAM.lim_solo && P.lim_ndvi === PARAM.lim_ndvi);
+  return P;
+}
+
+// Passo 4: processar
+painel.add(titulo('4. Processar'));
 var btnProcessar = ui.Button({label: 'Processar serie ' + ANO_INI + '-' + ANO_FIM,
                               style: {stretch: 'horizontal'}});
 painel.add(btnProcessar);
@@ -540,7 +576,8 @@ function mostrarParametros(P, anos) {
   }
   painelParam.add(ui.Label(
     'Bioma: ' + P.rotulo + '  |  janela: mes ' + P.mes_ini + ' a ' + P.mes_fim + '\n' +
-    'Limiares: f_solo >= ' + P.lim_solo + ' e NDVI <= ' + P.lim_ndvi + '\n' +
+    'Limiares: f_solo >= ' + P.lim_solo + ' e NDVI <= ' + P.lim_ndvi +
+      (P.limiares_padrao ? ' (padrao)' : ' (ALTERADOS no passo 3)') + '\n' +
     'Cloud Score+ >= ' + CS_LIMIAR + '  |  anos: ' + anos.join(', ') + '\n' +
     'Exportacao: ' + estado.epsg + ', ' + ESCALA + ' m\n' +
     'Endmembers (pixels puros da propria imagem):\n' +
@@ -564,7 +601,8 @@ btnProcessar.onClick(function() {
     return;
   }
 
-  var P = PARAM;
+  var P = parametrosDaTela();
+  estado.P = P;
   estado.idExecucao = gerarIdExecucao(P);
 
   var anos = [], fora = [];
@@ -712,7 +750,7 @@ function serieDoPonto(prod, P, ponto) {
 
 function aoClicar(coords) {
   if (!estado.produtos) { return; }
-  var prod = estado.produtos, P = PARAM;
+  var prod = estado.produtos, P = estado.P || PARAM;
   var ponto = ee.Geometry.Point([coords.lon, coords.lat]);
 
   painelPixel.clear();
@@ -820,7 +858,7 @@ function exportarAmostra(prod, P, idArea, nPorEstrato) {
 function montarSaidas(prod, P) {
   painelExport.clear();
   painelExport.style().set('shown', true);
-  painelExport.add(titulo('4. Saidas'));
+  painelExport.add(titulo('5. Saidas'));
   painelExport.add(nota('Cada botao manda uma tarefa para a aba Tasks; clique em ' +
     'RUN la para gravar no Drive (pasta ' + PASTA_EXPORT + '). Os arquivos levam o ' +
     'id da execucao no nome.'));
@@ -887,6 +925,18 @@ function montarSaidas(prod, P) {
         .select(BANDAS)
         .toFloat();
       expImagem(comp6, 'multiespectral_6bandas_' + idArea() + '_' + ano, prod.regiao);
+    }
+  });
+
+  // Fracoes do MLME e NDVI de cada ano: os valores que entram na classificacao.
+  // Servem para testar outros limiares fora do app.
+  botao('Fracoes do MLME e NDVI (um arquivo por ano)', function() {
+    for (var i = 0; i < prod.anos.length; i++) {
+      var ano = prod.anos[i];
+      var fr = ee.Image(prod.anual.filter(ee.Filter.eq('ano', ano)).first())
+        .select(['f_veg', 'f_solo', 'f_sombra', 'ndvi'])
+        .toFloat();
+      expImagem(fr, 'fracoes_ndvi_' + idArea() + '_' + ano);
     }
   });
 
@@ -959,6 +1009,7 @@ function montarSaidas(prod, P) {
       anos_processados: prod.anos.join(' '),
       mes_ini: P.mes_ini, mes_fim: P.mes_fim,
       limiar_solo: P.lim_solo, limiar_ndvi: P.lim_ndvi,
+      limiares_padrao: P.limiares_padrao ? 'sim' : 'nao',
       cloud_score_min: CS_LIMIAR, escala_m: ESCALA,
       epsg: estado.epsg,
       em_veg: P.em_veg.join(' '), em_solo: P.em_solo.join(' '),
