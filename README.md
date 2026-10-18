@@ -14,7 +14,7 @@ Engenharia (IME), por Pedro Silva de Medeiros e Pablo dos Santos Gomes Artte.
 
 ## App publicado
 
-https://ee-arttepablo.projects.earthengine.app/view/deteco-de-mudanas
+https://project-f97f2630-139b-4e7b-b00.projects.earthengine.app/view/deteccao-de-mudanca
 
 Abre no navegador, sem conta. Dá para desenhar a área, processar e ver os mapas; as exportações
 e o carregamento por asset só funcionam rodando o código no Code Editor (passos abaixo).
